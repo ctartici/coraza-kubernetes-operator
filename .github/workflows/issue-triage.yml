@@ -49,8 +49,61 @@ jobs:
             console.log(`Has milestone: ${hasMilestone}`);
             console.log(`Current labels: ${currentLabels.join(', ')}`);
 
-            const labelsToAdd = [];
-            const labelsToRemove = [];
+            // ------------------------------------------------------
+            // Check for declined issues
+            // ------------------------------------------------------
+
+            if (currentLabels.includes('triage/declined')) {
+              console.log('Issue is labeled triage/declined: closing.');
+
+              // Remove other conflicting triage labels
+              const otherTriageLabels = currentLabels.filter(l =>
+                l.startsWith('triage/') && l !== 'triage/declined'
+              );
+              for (const label of otherTriageLabels) {
+                console.log(`Removing conflicting label: ${label}`);
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issueNumber,
+                    name: label
+                  });
+                } catch (error) {
+                  if (error.status === 404) {
+                    console.log(`Label ${label} not found (may have been already removed)`);
+                  } else {
+                    throw error;
+                  }
+                }
+              }
+
+              // Clean up milestone if present
+              if (hasMilestone) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  milestone: null
+                });
+                console.log('Milestone removed');
+              }
+
+              // close the issue if not already closed
+              if (issue.state !== 'closed') {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issueNumber,
+                  state: 'closed'
+                });
+                console.log('Issue closed');
+              } else {
+                console.log('Issue already closed');
+              }
+
+              return;
+            }
 
             // ------------------------------------------------------
             // Apply Rules
@@ -68,6 +121,9 @@ jobs:
             //    'triage/needs-triage' label.
             //
             // ------------------------------------------------------
+
+            const labelsToAdd = [];
+            const labelsToRemove = [];
 
             if (!hasMilestone) {
               // remove 'triage/accepted' when there's no milestone (e.g., milestone was removed)
