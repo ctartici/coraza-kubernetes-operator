@@ -66,9 +66,18 @@ of the installation methods.
 
 #### Install with Kustomize
 
-```bash
-kubectl apply -k config/default
+You can install from a specific release (recommended). For example, to
+deploy release `v0.1.1`:
+
+```console
+kubectl apply -f https://github.com/networking-incubator/coraza-kubernetes-operator/releases/download/v0.1.1/crds.yml
+kubectl apply -f https://github.com/networking-incubator/coraza-kubernetes-operator/releases/download/v0.1.1/operator.yml
 ```
+
+Check to make sure the operator starts properly in the `coraza-system` namespace.
+
+To deploy your local development version instead, see
+[DEVELOPMENT.md](DEVELOPMENT.md).
 
 #### Install with Helm
 
@@ -91,8 +100,9 @@ enforce those rules on a `Gateway`.
 
 > **Note**: Currently can only target an Istio `Gateway` resource.
 
-You can find examples of `RuleSets` and `Engines` in `config/samples/`. The
-documentation for these APIs is available in the [API Documentation](todo).
+You can find examples of `RuleSets` and `Engines` in
+[config/samples/](config/samples). The full documentation for these APIs is
+available in the [API Documentation](todo).
 
 ## Contributing
 
