@@ -53,56 +53,14 @@ updated over time.
 
 [Seclang]:https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual-(v3.x)
 
-## Usage
+## Getting Started
 
-Make sure your supported platform is deployed to the cluster, then choose one
-of the installation methods.
+See the [Installation Documentation] for options to install.
 
-> **Note**: For deploying Istio, we recommend the [Sail Operator].
+Once it's up and running, see the [Basic Usage Documentation].
 
-[Sail Operator]:https://github.com/istio-ecosystem/sail-operator/
-
-### Installation
-
-#### Install with Kustomize
-
-You can install from a specific release (recommended). For example, to
-deploy release `v0.1.1`:
-
-```console
-kubectl apply -f https://github.com/networking-incubator/coraza-kubernetes-operator/releases/download/v0.1.1/crds.yml
-kubectl apply -f https://github.com/networking-incubator/coraza-kubernetes-operator/releases/download/v0.1.1/operator.yml
-```
-
-Check to make sure the operator starts properly in the `coraza-system` namespace.
-
-To deploy your local development version instead, see
-[DEVELOPMENT.md](DEVELOPMENT.md).
-
-#### Install with Helm
-
-TODO
-
-#### Install via OperatorHub
-
-[TODO]
-
-[TODO]:https://github.com/redhat-openshift-ecosystem/community-operators-prod
-
-### Firewall Deployment
-
-Firstly deploy your `RuleSets` which organize all your rules.
-
-> **Note**: Only `ConfigMaps` are supported for rules currently.
-
-Once your `RuleSets` are deployed you can deploy an `Engine` to load and
-enforce those rules on a `Gateway`.
-
-> **Note**: Currently can only target an Istio `Gateway` resource.
-
-You can find examples of `RuleSets` and `Engines` in
-[config/samples/](config/samples). The full documentation for these APIs is
-available in the [API Documentation](todo).
+[Installation Documentation]:https://github.com/networking-incubator/coraza-kubernetes-operator/wiki/Installation
+[Basic Usage Documentation]:https://github.com/networking-incubator/coraza-kubernetes-operator/wiki/Basic-Usage
 
 ## Contributing
 
