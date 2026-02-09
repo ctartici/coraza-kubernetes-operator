@@ -9,17 +9,18 @@
 ## About
 
 The Coraza Kubernetes Operator (CKO) enables declarative management of Web
-Application Firewalls (WAF) `Engines` and `RuleSets` in Kubernetes. These
-`Engines` are built on [CorazaWAF]. The CKO supports attachment of `Engines`
-to `Gateways` and enforcement of rules via `RuleSets`.
+Application Firewalls (WAF) on Kubernetes clusters. Users can deploy
+firewall engines which are attached to gateways, and rules which those
+engines enforce.
+
+[CorazaWAF] is used as the firewall engine.
 
 [CorazaWAF]:https://github.com/corazawaf/coraza
 
 **Key Features:**
 
-- `Engine` API to declaratively deploy WAF instances
-- `RuleSet` API to declaratively provide rules to WAF instances
-- Dynamic `RuleSet` updates
+- `Engine` API - declaratively manage WAF instances
+- `RuleSet` API - declaratively manage firewall rules
 - [ModSecurity Seclang] compatibility
 
 [ModSecurity Seclang]:https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual-(v3.x)
@@ -53,9 +54,15 @@ updated over time.
 
 [Seclang]:https://github.com/owasp-modsecurity/ModSecurity/wiki/Reference-Manual-(v3.x)
 
-## Getting Started
+## Documentation
 
-See the [Installation Documentation] for options to install.
+Documentation is available in the [wiki].
+
+[wiki]:https://github.com/networking-incubator/coraza-kubernetes-operator/wiki
+
+### Quick Start
+
+See the [Installation Documentation] for installation options.
 
 Once it's up and running, see the [Basic Usage Documentation].
 
