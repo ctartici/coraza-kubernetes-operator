@@ -47,6 +47,9 @@ compiling the rules (e.g. list of `ConfigMap` resources containing the
 
 > **Note**: Currently, only [Seclang] rules are supported.
 
+> **Warning**: Hosting or providing any packaged rules is an explicit non-goal
+> of this project. Users must supply their own rules.
+
 The keys for the cache are the `namespace/name` of the `RuleSet`, allowing the
 compiled set of rules to be polled from a cache server hosting the cache.
 
