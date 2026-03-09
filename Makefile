@@ -47,26 +47,35 @@ build.image:
 	$(CONTAINER_TOOL) build -t ${CONTROLLER_MANAGER_CONTAINER_IMAGE} .
 
 .PHONY: build.installer
-build.installer: manifests generate kustomize
+build.installer: manifests generate helm.sync ## Build a single install manifest (CRDs + operator)
 	mkdir -p dist
-	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${CONTROLLER_MANAGER_CONTAINER_IMAGE}
-	"$(KUSTOMIZE)" build config/default > dist/install.yaml
+	helm template $(HELM_RELEASE_NAME) $(HELM_CHART_DIR) \
+		--namespace $(HELM_RELEASE_NAMESPACE) \
+		--include-crds \
+		--set image.repository=$(CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE) \
+		--set image.tag=$(CONTROLLER_MANAGER_CONTAINER_IMAGE_TAG) \
+		> dist/install.yaml
 
 .PHONY: release.manifests
-release.manifests: manifests generate kustomize
+release.manifests: manifests generate helm.sync ## Build release manifest bundles (crds, operator, samples)
 	@echo "Building release manifest bundles..."
 	@mkdir -p dist
 	@echo "Building CRDs bundle..."
-	"$(KUSTOMIZE)" build config/crd > dist/crds.yaml
-	@echo "Building controller-manager bundle..."
-	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE}:${VERSION}
-	"$(KUSTOMIZE)" build config/manager > dist/operator.yaml
+	cat $(HELM_CHART_DIR)/crds/*.yaml > dist/crds.yaml
+	@echo "Building operator bundle..."
+	helm template $(HELM_RELEASE_NAME) $(HELM_CHART_DIR) \
+		--namespace $(HELM_RELEASE_NAMESPACE) \
+		--set image.repository=$(CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE) \
+		--set image.tag=$(VERSION) \
+		> dist/operator.yaml
 	@echo "Building samples bundle..."
 	cat config/samples/gateway.yaml > dist/samples.yaml
 	echo "---" >> dist/samples.yaml
 	cat config/samples/ruleset.yaml >> dist/samples.yaml
 	echo "---" >> dist/samples.yaml
 	cat config/samples/engine.yaml >> dist/samples.yaml
+	@echo "Packaging Helm chart..."
+	helm package $(HELM_CHART_DIR) --version $(VERSION:v%=%) --app-version $(VERSION) --destination dist/
 	@echo "Manifest bundles built successfully in dist/"
 	@ls -lh dist/
 
@@ -74,28 +83,26 @@ release.manifests: manifests generate kustomize
 # Deployment
 # ------------------------------------------------------------------------------
 
-ifndef ignore-not-found
-  ignore-not-found = false
-endif
+HELM_RELEASE_NAME ?= coraza-kubernetes-operator
+HELM_RELEASE_NAMESPACE ?= coraza-system
 
 .PHONY: install
-install: manifests kustomize
-	@out="$$( "$(KUSTOMIZE)" build config/crd 2>/dev/null || true )"; \
-	if [ -n "$$out" ]; then echo "$$out" | "$(KUBECTL)" apply -f -; else echo "No CRDs to install; skipping."; fi
+install: deploy ## Alias for deploy (Helm installs CRDs and operator together)
 
 .PHONY: uninstall
-uninstall: manifests kustomize
-	@out="$$( "$(KUSTOMIZE)" build config/crd 2>/dev/null || true )"; \
-	if [ -n "$$out" ]; then echo "$$out" | "$(KUBECTL)" delete --ignore-not-found=$(ignore-not-found) -f -; else echo "No CRDs to delete; skipping."; fi
+uninstall: undeploy ## Alias for undeploy
 
 .PHONY: deploy
-deploy: manifests kustomize
-	cd config/manager && "$(KUSTOMIZE)" edit set image controller=${CONTROLLER_MANAGER_CONTAINER_IMAGE}
-	"$(KUSTOMIZE)" build config/default | "$(KUBECTL)" apply -f -
+deploy: helm.sync ## Deploy operator into the cluster using Helm
+	helm upgrade --install $(HELM_RELEASE_NAME) $(HELM_CHART_DIR) \
+		--namespace $(HELM_RELEASE_NAMESPACE) \
+		--create-namespace \
+		--set image.repository=$(CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE) \
+		--set image.tag=$(CONTROLLER_MANAGER_CONTAINER_IMAGE_TAG)
 
 .PHONY: undeploy
-undeploy: kustomize
-	"$(KUSTOMIZE)" build config/default | "$(KUBECTL)" delete --ignore-not-found=$(ignore-not-found) -f -
+undeploy: ## Remove operator from the cluster using Helm
+	helm uninstall $(HELM_RELEASE_NAME) --namespace $(HELM_RELEASE_NAMESPACE)
 
 .PHONY: run
 run: manifests generate fmt vet
@@ -139,7 +146,7 @@ lint.config: golangci-lint
 
 .PHONY: cluster.kind
 cluster.kind:
-	ISTIO_VERSION=${ISTIO_VERSION} METALLB_VERSION=${METALLB_VERSION} METALLB_POOL_SIZE=${METALLB_POOL_SIZE} python3 hack/kind_cluster.py setup
+	ISTIO_VERSION=${ISTIO_VERSION} METALLB_VERSION=${METALLB_VERSION} METALLB_POOL_SIZE=${METALLB_POOL_SIZE} CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE=${CONTROLLER_MANAGER_CONTAINER_IMAGE_BASE} CONTROLLER_MANAGER_CONTAINER_IMAGE_TAG=${CONTROLLER_MANAGER_CONTAINER_IMAGE_TAG} python3 hack/kind_cluster.py setup
 
 .PHONY: cluster.load-images
 cluster.load-images:
@@ -285,18 +292,11 @@ $(LOCALBIN):
 
 KUBECTL ?= kubectl
 KIND ?= kind
-KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 
-KUSTOMIZE_VERSION ?= v5.7.1
 CONTROLLER_TOOLS_VERSION ?= v0.19.0
 GOLANGCI_LINT_VERSION ?= v2.5.0
-
-.PHONY: kustomize
-kustomize: $(KUSTOMIZE)
-$(KUSTOMIZE): $(LOCALBIN)
-	$(call go-install-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v5,$(KUSTOMIZE_VERSION))
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN)
