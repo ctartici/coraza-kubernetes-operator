@@ -153,7 +153,7 @@ func toUnstructured(obj runtime.Object) *unstructured.Unstructured {
 // -----------------------------------------------------------------------------
 
 // BuildGateway builds an unstructured Gateway object with Istio annotations.
-func BuildGateway(namespace, name string) *unstructured.Unstructured {
+func BuildGateway(namespace, name, gatewayClassName string) *unstructured.Unstructured {
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "gateway.networking.k8s.io/v1",
@@ -169,7 +169,7 @@ func BuildGateway(namespace, name string) *unstructured.Unstructured {
 				},
 			},
 			"spec": map[string]interface{}{
-				"gatewayClassName": "istio",
+				"gatewayClassName": gatewayClassName,
 				"listeners": []interface{}{
 					map[string]interface{}{
 						"name":     "http",
@@ -343,12 +343,18 @@ func (s *Scenario) CreateConfigMap(namespace, name, rules string) {
 	})
 }
 
-// CreateGateway creates a Gateway resource and registers cleanup.
+// CreateGateway creates a Gateway resource using the default "istio" class and registers cleanup.
 func (s *Scenario) CreateGateway(namespace, name string) {
+	s.T.Helper()
+	s.CreateGatewayWithClass(namespace, name, "istio")
+}
+
+// CreateGatewayWithClass creates a Gateway resource using the provided GatewayClass and registers cleanup.
+func (s *Scenario) CreateGatewayWithClass(namespace, name, gatewayClassName string) {
 	s.T.Helper()
 	ctx := s.T.Context()
 
-	obj := BuildGateway(namespace, name)
+	obj := BuildGateway(namespace, name, gatewayClassName)
 	_, err := s.F.DynamicClient.Resource(GatewayGVR).Namespace(namespace).Create(
 		ctx, obj, metav1.CreateOptions{},
 	)
