@@ -13,6 +13,9 @@ endif
 
 CONTAINER_TOOL ?= docker
 
+# KIND_CLUSTER_NAME is used to detect if tests are running locally via kind.
+# Use a non-empty default for kind-based integration tests; override or clear
+# it when running against an external cluster like OCP.
 KIND_CLUSTER_NAME ?= coraza-kubernetes-operator-integration
 ISTIO_VERSION ?= 1.28.2
 METALLB_VERSION ?= 0.15.3
@@ -178,7 +181,12 @@ test.coverage: generate
 .PHONY: test.integration
 test.integration:
 	go clean -testcache
-	KIND_CLUSTER_NAME=${KIND_CLUSTER_NAME} ISTIO_VERSION=${ISTIO_VERSION} go test -tags=integration ./test/integration/... -v
+	KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) ISTIO_VERSION=${ISTIO_VERSION} go test -tags=integration ./test/integration/... -v
+
+.PHONY: test.e2e
+test.e2e:
+	go clean -testcache
+	KIND_CLUSTER_NAME=$(KIND_CLUSTER_NAME) ISTIO_VERSION=${ISTIO_VERSION} go test -tags=e2e ./test/e2e/... -v
 
 .PHONY: test.tools
 test.tools:
