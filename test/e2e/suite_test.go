@@ -36,6 +36,7 @@ func TestMain(m *testing.M) {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			log.Fatalf("failed to get user home directory: %v", err)
+			os.Exit(1)
 		}
 		kubeconfig = home + "/.kube/config"
 	}
