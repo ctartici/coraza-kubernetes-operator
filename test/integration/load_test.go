@@ -18,6 +18,8 @@ limitations under the License.
 
 package integration
 
+// TODO: move this into perf test suite when ready: https://github.com/networking-incubator/coraza-kubernetes-operator/issues/115
+
 import (
 	"fmt"
 	"net/http"
