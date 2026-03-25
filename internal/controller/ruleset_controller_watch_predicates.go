@@ -19,8 +19,6 @@ package controller
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -45,25 +43,14 @@ func (r *RuleSetReconciler) findRuleSetsForConfigMap(ctx context.Context, config
 		return nil
 	}
 
-	var requests []reconcile.Request
-	for _, ruleSet := range ruleSetList.Items {
-		for _, rule := range ruleSet.Spec.Rules {
+	return collectRequests(ruleSetList.Items, func(rs *wafv1alpha1.RuleSet) bool {
+		for _, rule := range rs.Spec.Rules {
 			if rule.Name == configMap.GetName() {
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      ruleSet.Name,
-						Namespace: ruleSet.Namespace,
-					},
-				}
-				requests = append(requests, req)
-
-				logInfo(log, req, "RuleSet", "Enqueuing for reconciliation due to ConfigMap change", "configMapName", configMap.GetName())
-				break
+				return true
 			}
 		}
-	}
-
-	return requests
+		return false
+	})
 }
 
 // findRuleSetsForSecret maps a Secret to the RuleSets that reference it (if any).
@@ -76,19 +63,7 @@ func (r *RuleSetReconciler) findRuleSetsForSecret(ctx context.Context, secret cl
 		return nil
 	}
 
-	var requests []reconcile.Request
-	for _, ruleSet := range ruleSetList.Items {
-		if ruleSet.Spec.RuleData != nil && *ruleSet.Spec.RuleData == secret.GetName() {
-			req := ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ruleSet.Name,
-					Namespace: ruleSet.Namespace,
-				},
-			}
-			requests = append(requests, req)
-			logInfo(log, req, "RuleSet", "Enqueuing for reconciliation due to Secret change", "secretName", secret.GetName())
-		}
-	}
-
-	return requests
+	return collectRequests(ruleSetList.Items, func(rs *wafv1alpha1.RuleSet) bool {
+		return rs.Spec.RuleData != nil && *rs.Spec.RuleData == secret.GetName()
+	})
 }
